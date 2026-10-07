@@ -2,10 +2,10 @@
 
 Every script resolves its inputs and outputs through this module, so the
 repository can be checked out anywhere. By default ``ROOT`` is the repository
-root, which is where the Zenodo archives are expected to be unpacked::
+root, which is where the data repository is expected to be downloaded::
 
-    <ROOT>/datasets/dataset_24042026/    raw recordings   (Zenodo: nico_stereo_dataset)
-    <ROOT>/out/out_24042026/             evaluation data  (Zenodo: nico_stereo_out)
+    <ROOT>/datasets/dataset_24042026/    raw recordings   (HF: kocurvik/nico_stereo_data)
+    <ROOT>/out/out_24042026/             evaluation data  (HF: kocurvik/nico_stereo_data)
     <ROOT>/third_party/<repo>/           clones of the models' own repositories
 
 Each location can be overridden with an environment variable, e.g. to keep the

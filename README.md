@@ -17,8 +17,8 @@ the different depth sources.
 > LiteAnyStereo V2 runners and the FoundationPose driver `run_pose_arm.py` were written afterwards for
 > the paper.
 
-- **Data:** Zenodo, <https://doi.org/10.5281/zenodo.23209897> (see [Data](#data))
-- **License:** code under [CC BY 4.0](LICENSE). The data carry the license stated on the Zenodo record. Code adapted from the model repositories (`depth_estimation_scripts/`, `downstream_task_scripts/`) and the FoundationPose patch remain subject to those projects' own licenses.
+- **Data:** Hugging Face, <https://huggingface.co/datasets/kocurvik/nico_stereo_data> (see [Data](#data))
+- **License:** code and data under [CC BY 4.0](LICENSE). Code adapted from the model repositories (`depth_estimation_scripts/`, `downstream_task_scripts/`) and the FoundationPose patch remain subject to those projects' own licenses.
 
 ## Contents
 
@@ -36,7 +36,7 @@ depth_estimation_scripts/     inference scripts of the delivered networks (run i
 downstream_task_scripts/      the original FoundationPose drivers for the ZED M / RealSense arms
 analysis/                     scores behind Tables II-IV; results/ holds their CSVs
 paper_scripts/                verify_data.py, figures, inference-time measurement
-tools/make_zenodo_archives.py packs the data for Zenodo
+tools/make_zenodo_archives.py packs the data into the per-part zip archives
 third_party_patches/          Windows build patch for FoundationPose
 ```
 
@@ -57,8 +57,8 @@ because the calibration and rectification use `cv2.omnidir`.
 holds the data and the third-party clones:
 
 ```text
-<repo>/datasets/dataset_24042026/     raw recordings            (Zenodo)
-<repo>/out/out_24042026/              evaluation data           (Zenodo)
+<repo>/datasets/dataset_24042026/     raw recordings            (Hugging Face)
+<repo>/out/out_24042026/              evaluation data           (Hugging Face)
 <repo>/third_party/<name>/            clones of the model repositories
 ```
 
@@ -71,20 +71,27 @@ hard-coded as a default in several scripts.
 
 ## Data
 
-The data are archived on Zenodo as one record with seven zip files. Every archive stores paths
-relative to the repository root, so unpacking all you need into the repository root gives the layout
-above. Download with `wget "https://zenodo.org/records/23209897/files/<file>?download=1"` or the Zenodo web
-page, check them against `SHA256SUMS`, then `unzip` each into the repository root.
+The data are in the Hugging Face dataset repository
+[`kocurvik/nico_stereo_data`](https://huggingface.co/datasets/kocurvik/nico_stereo_data) as plain files. Every path
+is relative to the repository root, so downloading into it gives the layout above:
 
-| file | size | contents | needed for |
-|---|---|---|---|
-| `nico_stereo_out_core.zip` | 0.3 GB | `out/out_24042026/`: `cameras_parameters`, `cameras_statistic_model`, `depth_comparison`, `inference_time_stats.csv`, and `pose_estimation/{3D_models,masks,results,results_check}` (the FoundationPose poses of all arms) | every scoring script |
-| `nico_stereo_out_depth_samples.zip` | 0.03 GB | `out/out_24042026/depth_estimation/<model>/`: `run_stats.json` of all 13 depth sources and two depth maps each (frames 0 and 3). **Not the full set of depth maps**, see below | `verify_data.py`, Fig. 3 |
-| `nico_stereo_out_pose_inputs.zip` | 0.9 GB | `out/out_24042026/pose_estimation/`: `depth_{nn,rgbd,sgbm,las2_m,las2_h}` and `undistorted_images_NICO` | re-running FoundationPose |
-| `nico_stereo_dataset_stereo_4k_depth.zip` | 5.5 GB | `datasets/dataset_24042026/stereo_4k_depth/`: the 215 evaluation frames (4K stereo pair, RealSense and ZED M RGB and depth) | re-running depth networks, re-scoring from raw |
-| `nico_stereo_dataset_downstream_task.zip` | 1.5 GB | `.../downstream_task/`: the six pose scenes (scenes 001, 002, 004, 005, 006, 009) | re-running the pose pipeline from raw |
-| `nico_stereo_dataset_calibration.zip` | 1.5 GB | `.../stereo_4k_calibration`, `stereo_4k_relative_pose`, `calibration_ZED`, `calibration_Realsense`, `distance_validation` | re-running calibration |
-| `nico_stereo_dataset_camera_stats_model.zip` | 1.6 GB | `.../camera_stats_model/`: repeated static scenes behind the noise model | re-running the noise model |
+```bash
+hf download kocurvik/nico_stereo_data --repo-type dataset --local-dir .     # everything, 11.3 GB
+```
+
+(`hf` comes with `pip install huggingface_hub`.) To fetch only the parts a step needs, add `--include` with the
+patterns from the table, e.g. `--include "out/out_24042026/depth_estimation/*"`. In the table
+`D` = `datasets/dataset_24042026` and `O` = `out/out_24042026`.
+
+| part | `--include` patterns | size | contents | needed for |
+|---|---|---|---|---|
+| `out_core` | `O/cameras_parameters/*` `O/cameras_statistic_model/*` `O/depth_comparison/*` `O/inference_time_stats.csv` `O/pose_estimation/3D_models/*` `O/pose_estimation/masks/*` `O/pose_estimation/results/*` `O/pose_estimation/results_check/*` | 0.3 GB | calibrations, noise model, depth metrics, CAD models, masks and the FoundationPose poses of all arms | every scoring script |
+| `out_depth_samples` | `O/depth_estimation/*` | 0.03 GB | `run_stats.json` of all 13 depth sources and two depth maps each (frames 0 and 3). **Not the full set of depth maps**, see below | `verify_data.py`, Fig. 3 |
+| `out_pose_inputs` | `O/pose_estimation/depth_*` `O/pose_estimation/undistorted_images_NICO/*` | 0.9 GB | `depth_{nn,rgbd,sgbm,las2_m,las2_h}` and `undistorted_images_NICO` | re-running FoundationPose |
+| `dataset_stereo_4k_depth` | `D/stereo_4k_depth/*` | 5.5 GB | the 215 evaluation frames (4K stereo pair, RealSense and ZED M RGB and depth) | re-running depth networks, re-scoring from raw |
+| `dataset_downstream_task` | `D/downstream_task/*` | 1.5 GB | the six pose scenes (scenes 001, 002, 004, 005, 006, 009) | re-running the pose pipeline from raw |
+| `dataset_calibration` | `D/stereo_4k_calibration/*` `D/stereo_4k_relative_pose/*` `D/calibration_ZED/*` `D/calibration_Realsense/*` `D/distance_validation/*` | 1.5 GB | calibration and validation images | re-running calibration |
+| `dataset_camera_stats_model` | `D/camera_stats_model/*` | 1.6 GB | repeated static scenes behind the noise model | re-running the noise model |
 
 **The predicted depth maps of the 13 depth sources (about 190 MB each) are not archived**: re-create them with the
 inference scripts (step 5). What is delivered is everything computed from them: `depth_comparison/zed/metrics_cauchy/`
@@ -95,7 +102,7 @@ The FoundationPose results are the 4x4 poses in
 `zed`, `realsense` (delivered),
 `sgbm`, `las2_m`, `las2_h` (produced for the paper) and, in `results_check/left`, the validation run of the driver.
 
-To rebuild the archives from a local copy of the data use `python tools/make_zenodo_archives.py --out <dir>`
+`python tools/make_zenodo_archives.py --out <dir>` packs a local copy of the data into one zip per part
 (`--list` prints only the sizes).
 
 ## Reproducing the paper
@@ -114,7 +121,7 @@ disagreement. This repository's last run: 54 checks, all passed.
 
 ### 2. Re-score the depth maps (Tables II and III)
 
-This needs the predicted depth maps of every model, which are not on Zenodo: first re-create them with step 5, which
+This needs the predicted depth maps of every model, which are not in the data repository: first re-create them with step 5, which
 needs `dataset_stereo_4k_depth`. The per-image metrics of the delivered runs are in `out_core` (see above).
 
 ```bash
