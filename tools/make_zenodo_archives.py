@@ -39,8 +39,12 @@ ARCHIVES = {
         f"{O}/pose_estimation/results",
         f"{O}/pose_estimation/results_check",
     ]),
-    "out_depth_estimation": ("nico_stereo_out_depth_estimation.zip", [
-        f"{O}/depth_estimation",
+    # The 13 x 190 MB depth maps are not archived: they are re-created by the inference
+    # scripts. These few files keep verify_data.py and Fig. 3 working without them.
+    "out_depth_samples": ("nico_stereo_out_depth_samples.zip", [
+        f"{O}/depth_estimation/*/run_stats.json",
+        f"{O}/depth_estimation/*/depth/0_depth.npy",
+        f"{O}/depth_estimation/*/depth/3_depth.npy",
     ]),
     "out_pose_inputs": ("nico_stereo_out_pose_inputs.zip", [
         f"{O}/pose_estimation/{d}" for d in (
@@ -72,8 +76,11 @@ EXCLUDE = [
 
 
 def files_under(rel: str):
-    base = ROOT / rel
-    paths = [base] if base.is_file() else sorted(p for p in base.rglob("*") if p.is_file())
+    if "*" in rel:                      # glob pattern relative to ROOT
+        paths = sorted(p for p in ROOT.glob(rel) if p.is_file())
+    else:
+        base = ROOT / rel
+        paths = [base] if base.is_file() else sorted(p for p in base.rglob("*") if p.is_file())
     for p in paths:
         arc = p.relative_to(ROOT).as_posix()
         if not any(fnmatch.fnmatch(arc, pat) for pat in EXCLUDE):
@@ -100,7 +107,7 @@ def main() -> None:
     sums = []
     for key in args.only or ARCHIVES:
         name, rels = ARCHIVES[key]
-        missing = [r for r in rels if not (ROOT / r).exists()]
+        missing = [r for r in rels if "*" not in r and not (ROOT / r).exists()]
         if missing:
             sys.exit(f"{name}: missing under {ROOT}: {', '.join(missing)}")
         entries = [e for r in rels for e in files_under(r)]

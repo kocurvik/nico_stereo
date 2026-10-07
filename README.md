@@ -62,7 +62,7 @@ holds the data and the third-party clones:
 <repo>/third_party/<name>/            clones of the model repositories
 ```
 
-To keep the ~17 GB elsewhere set `NICO_STEREO_ROOT` (the directory that contains `datasets/` and `out/`),
+To keep the ~11 GB elsewhere set `NICO_STEREO_ROOT` (the directory that contains `datasets/` and `out/`),
 `NICO_STEREO_THIRD_PARTY` and `FOUNDATIONPOSE_DIR`. The date `24042026` is the recording date and is
 hard-coded as a default in several scripts.
 
@@ -79,16 +79,20 @@ page, check them against `SHA256SUMS`, then `unzip` each into the repository roo
 | file | size | contents | needed for |
 |---|---|---|---|
 | `nico_stereo_out_core.zip` | 0.3 GB | `out/out_24042026/`: `cameras_parameters`, `cameras_statistic_model`, `depth_comparison`, `inference_time_stats.csv`, and `pose_estimation/{3D_models,masks,results,results_check}` (the FoundationPose poses of all arms) | every scoring script |
-| `nico_stereo_out_depth_estimation.zip` | 6.0 GB | `out/out_24042026/depth_estimation/<model>/`: the depth maps (`depth/*.npy`, 215 frames, 640x360), `run_stats.json`, visualisations for 13 depth sources | depth scoring, figures, `verify_data.py` |
+| `nico_stereo_out_depth_samples.zip` | 0.03 GB | `out/out_24042026/depth_estimation/<model>/`: `run_stats.json` of all 13 depth sources and two depth maps each (frames 0 and 3). **Not the full set of depth maps**, see below | `verify_data.py`, Fig. 3 |
 | `nico_stereo_out_pose_inputs.zip` | 0.9 GB | `out/out_24042026/pose_estimation/`: `depth_{nn,rgbd,sgbm,las2_m,las2_h}` and `undistorted_images_NICO` | re-running FoundationPose |
 | `nico_stereo_dataset_stereo_4k_depth.zip` | 5.5 GB | `datasets/dataset_24042026/stereo_4k_depth/`: the 215 evaluation frames (4K stereo pair, RealSense and ZED M RGB and depth) | re-running depth networks, re-scoring from raw |
 | `nico_stereo_dataset_downstream_task.zip` | 1.5 GB | `.../downstream_task/`: the six pose scenes (scenes 001, 002, 004, 005, 006, 009) | re-running the pose pipeline from raw |
 | `nico_stereo_dataset_calibration.zip` | 1.5 GB | `.../stereo_4k_calibration`, `stereo_4k_relative_pose`, `calibration_ZED`, `calibration_Realsense`, `distance_validation` | re-running calibration |
 | `nico_stereo_dataset_camera_stats_model.zip` | 1.6 GB | `.../camera_stats_model/`: repeated static scenes behind the noise model | re-running the noise model |
 
-The depth maps are metric depth in metres, one `<frame>_depth.npy` per frame. `depth_comparison/zed/metrics_cauchy/`
-holds the per-image and summary metrics, `pose_estimation/results/<arm>/<scene>/<object>/ob_in_cam/<frame>.txt` the
-4x4 FoundationPose poses. The arms are `left` (BridgeDepth RVC, delivered), `zed`, `realsense` (delivered),
+**The predicted depth maps of the 13 depth sources (about 190 MB each) are not archived**: re-create them with the
+inference scripts (step 5). What is delivered is everything computed from them: `depth_comparison/zed/metrics_cauchy/`
+holds the per-image and summary metrics of the delivered runs, and the depth maps used for the pose scenes are in
+`out_pose_inputs`. The depth maps themselves are metric depth in metres, one `<frame>_depth.npy` per frame at 640x360.
+The FoundationPose results are the 4x4 poses in
+`pose_estimation/results/<arm>/<scene>/<object>/ob_in_cam/<frame>.txt`. The arms are `left` (BridgeDepth RVC, delivered),
+`zed`, `realsense` (delivered),
 `sgbm`, `las2_m`, `las2_h` (produced for the paper) and, in `results_check/left`, the validation run of the driver.
 
 To rebuild the archives from a local copy of the data use `python tools/make_zenodo_archives.py --out <dir>`
@@ -104,11 +108,14 @@ Each step below needs only the files named in its row of the data table.
 python paper_scripts/verify_data.py
 ```
 
-Needs `out_core` and `out_depth_estimation`. Re-derives every number the paper states (Tables I-IV and
+Needs `out_core` and `out_depth_samples`. Re-derives every number the paper states (Tables I-IV and
 the claims in Sections V-VI) from the exports and the CSVs in `analysis/results/`, and exits non-zero on any
 disagreement. This repository's last run: 54 checks, all passed.
 
 ### 2. Re-score the depth maps (Tables II and III)
+
+This needs the predicted depth maps of every model, which are not on Zenodo: first re-create them with step 5, which
+needs `dataset_stereo_4k_depth`. The per-image metrics of the delivered runs are in `out_core` (see above).
 
 ```bash
 python -m nico_stereo.depth_compare.compute_cauchy_metrics   # per-model metrics on each model's own valid pixels
@@ -152,7 +159,7 @@ python paper_scripts/make_pose_figure.py    # Fig. 4 panels, from FoundationPose
 python paper_scripts/make_noise_figure.py   # noise histograms (slow: ~40 M samples; not in the paper)
 ```
 
-Outputs go to `paper_scripts/figures/`. `make_figures.py` needs a LaTeX installation on `PATH`: it sets
+Outputs go to `paper_scripts/figures/`. `make_figures.py` needs `out_core` and `out_depth_samples` (Fig. 3 uses frame 3) and a LaTeX installation on `PATH`: it sets
 `text.usetex` so the labels use the paper's font. Fig. 1 and Fig. 2 are photographs/composites from the thesis
 and are not regenerated here.
 
@@ -289,7 +296,8 @@ unused scripts, copyrighted example images and machine-specific files were remov
 
 - **Run, on the delivered data:** `paper_scripts/verify_data.py` (54 checks, all passed);
   `analysis/pose_adds_comparison.py` and `analysis/pose_adds_las2.py` (their four CSVs came out byte-identical to
-  the delivered ones); `tools/make_zenodo_archives.py` (built and read back `nico_stereo_out_core.zip`).
+  the delivered ones); `tools/make_zenodo_archives.py` (built and read back `nico_stereo_out_core.zip`); `verify_data.py` on a fresh folder
+  holding only the unpacked `out_core` and `out_depth_samples` archives (all 54 checks passed).
 - **Checked statically only:** every `nico_stereo.*` import resolves and every file compiles. The other
   scripts (depth-model inference, FoundationPose driver, calibration, figures, timing) were not executed again
   after the cleanup, and the depth maps and poses were not regenerated. The delivered outputs are the
