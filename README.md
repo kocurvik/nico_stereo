@@ -17,8 +17,8 @@ the different depth sources.
 > LiteAnyStereo V2 runners and the FoundationPose driver `run_pose_arm.py` were written afterwards for
 > the paper.
 
-- **Data:** Zenodo, <https://doi.org/10.5281/zenodo.XXXXXXX> (see [Data](#data))
-- **License:** none chosen yet.
+- **Data:** Zenodo, <https://doi.org/10.5281/zenodo.23209897> (see [Data](#data))
+- **License:** code under [CC BY 4.0](LICENSE). The data carry the license stated on the Zenodo record. Code adapted from the model repositories (`depth_estimation_scripts/`, `downstream_task_scripts/`) and the FoundationPose patch remain subject to those projects' own licenses.
 
 ## Contents
 
@@ -73,7 +73,7 @@ hard-coded as a default in several scripts.
 
 The data are archived on Zenodo as one record with seven zip files. Every archive stores paths
 relative to the repository root, so unpacking all you need into the repository root gives the layout
-above. Download with `wget "https://zenodo.org/records/XXXXXXX/files/<file>?download=1"` or the Zenodo web
+above. Download with `wget "https://zenodo.org/records/23209897/files/<file>?download=1"` or the Zenodo web
 page, check them against `SHA256SUMS`, then `unzip` each into the repository root.
 
 | file | size | contents | needed for |
