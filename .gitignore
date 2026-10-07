@@ -1,0 +1,15 @@
+# data and third-party code are downloaded, not committed (see README)
+/datasets/
+/out/
+/third_party/
+/undistorted_output/
+
+# generated
+paper_scripts/figures/
+paper_scripts/_frames/
+paper_scripts/_frames_all/
+
+__pycache__/
+*.pyc
+*.egg-info/
+*Zone.Identifier

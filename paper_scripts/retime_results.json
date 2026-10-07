@@ -1,0 +1,70 @@
+{
+ "_comment": [
+  "Inference time for Table II and Section V-C.",
+  "Produced by: python scripts/export_frames.py 30",
+  "             python scripts/retime.py <model> --frames 30 --passes 3",
+  "30 evenly spaced frames of the 215, mean over three passes, every model",
+  "through the timed region of its own reference implementation, all in one",
+  "env on one machine.",
+  "Only timing is measured here; the delivered depth predictions, and so",
+  "every accuracy number in the paper, are untouched.",
+  "Run-to-run variation is a few percent, so verify_data.py checks these",
+  "with a relative tolerance rather than to the printed decimal."
+ ],
+ "machine": "Intel Core i7-11800H (8 cores), 16 GB RAM, NVIDIA RTX A4000 Laptop GPU",
+ "sample": {
+  "n_frames": 30,
+  "n_passes": 3,
+  "resolution": [
+   640,
+   360
+  ]
+ },
+ "models": {
+  "UniDepth_mono": {
+   "device": "GPU",
+   "mean_time_s": 0.0676,
+   "peak_vram_gb": 2.61
+  },
+  "MoGe_mono": {
+   "device": "GPU",
+   "mean_time_s": 0.25,
+   "peak_vram_gb": 3.16
+  },
+  "DepthAnything3_mono": {
+   "device": "GPU",
+   "mean_time_s": 0.065,
+   "peak_vram_gb": 2.18
+  },
+  "BridgeDepth_rvc": {
+   "device": "GPU",
+   "mean_time_s": 0.1755,
+   "peak_vram_gb": 1.66
+  },
+  "BridgeDepth_middlebury": {
+   "device": "GPU",
+   "mean_time_s": 0.1756,
+   "peak_vram_gb": 1.66
+  },
+  "DEFOM_stereo": {
+   "device": "GPU",
+   "mean_time_s": 0.4874,
+   "peak_vram_gb": 4.09
+  },
+  "FoundationStereo": {
+   "device": "GPU",
+   "mean_time_s": 0.824,
+   "peak_vram_gb": 1.71
+  },
+  "S2M2_stereo": {
+   "device": "GPU",
+   "mean_time_s": 0.2376,
+   "peak_vram_gb": 2.19
+  },
+  "SGBM_stereo": {
+   "device": "CPU",
+   "mean_time_s": 0.0492,
+   "peak_vram_gb": null
+  }
+ }
+}

@@ -1,0 +1,120 @@
+diff --git a/check_env.py b/check_env.py
+index 231c021..cf9d169 100755
+--- a/check_env.py
++++ b/check_env.py
+@@ -58,7 +58,8 @@ def main() -> int:
+ 
+   # --- Native extension ---
+   build_dir = repo_root / "mycpp" / "build"
+-  so_files = list(build_dir.glob("mycpp*.so"))
++  # Windows builds a .pyd rather than a .so; accept either.
++  so_files = list(build_dir.glob("mycpp*.so")) + list(build_dir.glob("mycpp*.pyd"))
+   if not so_files:
+     warnings.append(f"No mycpp extension found under {build_dir} (run bash build_all_conda.sh).")
+   else:
+diff --git a/estimater.py b/estimater.py
+index e147d56..bbb0563 100644
+--- a/estimater.py
++++ b/estimater.py
+@@ -13,6 +13,7 @@ import itertools
+ from learning.training.predict_score import *
+ from learning.training.predict_pose_refine import *
+ import yaml
++import tempfile
+ 
+ 
+ class FoundationPose:
+@@ -66,7 +67,9 @@ class FoundationPose:
+     self.mesh_path = None
+     self.mesh = mesh
+     if self.mesh is not None:
+-      self.mesh_path = f'/tmp/{uuid.uuid4()}.obj'
++      # '/tmp' is POSIX-only; on Windows it resolves to <cwd drive>:	mp,
++      # which need not exist. Use the platform temp dir instead.
++      self.mesh_path = os.path.join(tempfile.gettempdir(), f'{uuid.uuid4()}.obj')
+       self.mesh.export(self.mesh_path)
+     self.mesh_tensors = make_mesh_tensors(self.mesh)
+ 
+diff --git a/mycpp/CMakeLists.txt b/mycpp/CMakeLists.txt
+index 7c8a9a5..e4190b5 100644
+--- a/mycpp/CMakeLists.txt
++++ b/mycpp/CMakeLists.txt
+@@ -4,10 +4,15 @@ project(mycpp)
+ 
+ set(CMAKE_BUILD_TYPE Release)
+ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fopenmp -g3 -O3")
++if(MSVC)
++  set(CMAKE_CXX_STANDARD 14)
++  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp /O2 /bigobj")
++else()
++  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fopenmp -g3 -O3")
++endif()
+ 
+ 
+-find_package(Boost REQUIRED COMPONENTS system program_options)
++# Boost removed: no Boost symbol is used by this module.
+ find_package(OpenMP REQUIRED)
+ find_package(Eigen3 REQUIRED)
+ find_package(pybind11 REQUIRED)
+@@ -22,4 +27,4 @@ file(GLOB MY_SRC ${PROJECT_SOURCE_DIR}/src/*.cpp)
+ set(PYBIND11_CPP_STANDARD -std=c++14)
+ 
+ pybind11_add_module(mycpp src/app/pybind_api.cpp ${MY_SRC})
+-target_link_libraries(mycpp PRIVATE ${Boost_LIBRARIES} ${OpenMP_CXX_FLAGS} Eigen3::Eigen)
+\ No newline at end of file
++target_link_libraries(mycpp PRIVATE OpenMP::OpenMP_CXX Eigen3::Eigen)
+\ No newline at end of file
+diff --git a/mycpp/include/Utils.h b/mycpp/include/Utils.h
+index 41703f5..18ef6c3 100644
+--- a/mycpp/include/Utils.h
++++ b/mycpp/include/Utils.h
+@@ -10,6 +10,19 @@
+ 
+ #pragma once
+ 
++// --- Windows/MSVC portability (added for the ICETA2026 build) -------------
++// M_PI is not defined by MSVC's <cmath> without this, and cluster_poses
++// uses it. <unistd.h> and the Boost includes were removed: POSIX-only and
++// unused respectively.
++#ifdef _WIN32
++  #define _USE_MATH_DEFINES
++#endif
++#include <cmath>
++#ifndef M_PI
++  #define M_PI 3.14159265358979323846
++#endif
++// -------------------------------------------------------------------------
++
+ // STL
+ #include <iostream>
+ #include <string>
+@@ -21,16 +34,13 @@
+ #include <climits>
+ #include <tuple>
+ #include <unordered_map>
+-#include <boost/assign.hpp>
+ #include <thread>
+ #include <Eigen/Dense>
+ #include <Eigen/Geometry>
+ #include <string>
+ #include <limits.h>
+-#include <unistd.h>
+ #include <memory>
+ #include <math.h>
+-#include <boost/format.hpp>
+ #include <numeric>
+ #include <thread>
+ #include <omp.h>
+diff --git a/mycpp/src/app/pybind_api.cpp b/mycpp/src/app/pybind_api.cpp
+index 6a415c3..5460c8a 100644
+--- a/mycpp/src/app/pybind_api.cpp
++++ b/mycpp/src/app/pybind_api.cpp
+@@ -10,7 +10,6 @@
+ 
+ 
+ #include "Utils.h"
+-#include <boost/algorithm/string.hpp>
+ #include <pybind11/pybind11.h>
+ #include <pybind11/stl.h>
+ #include <pybind11/eigen.h>

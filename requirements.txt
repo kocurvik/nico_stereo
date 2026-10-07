@@ -1,0 +1,14 @@
+# Analysis environment: scores the delivered depth maps and poses, redraws the figures.
+# Tested with Python 3.10-3.11 on Windows 11 (numpy 1.26, scipy 1.15, pandas 2.0, opencv 4.x).
+numpy
+scipy
+pandas
+matplotlib
+opencv-contrib-python   # cv2.omnidir (calibration / rectification) lives in contrib
+trimesh
+tqdm
+statsmodels
+seaborn
+plotly
+tabulate
+sympy

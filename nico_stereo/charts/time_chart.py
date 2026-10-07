@@ -1,0 +1,89 @@
+import json
+from pathlib import Path
+
+import plotly.graph_objects as go
+
+from nico_stereo.config import ROOT
+from nico_stereo.prepare_paths import get_depth_estimation_network
+
+parent_dir = ROOT
+date = "24042026"
+
+nn_names = get_depth_estimation_network()
+
+fig = go.Figure()
+
+max_len = 0
+
+for nn_key, nn_value in nn_names.items():
+    out_dir = parent_dir / "out" / f"out_{date}" / "depth_estimation" / nn_key
+    stats_path = out_dir / "run_stats.json"
+
+    nn_label = nn_value
+
+    if not stats_path.exists():
+        print(f"Skipping {nn_label}: missing {stats_path}")
+        continue
+
+    with open(stats_path, "r", encoding="utf-8") as f:
+        stats = json.load(f)
+
+    times = [e["time_s"] for e in stats["per_image_stats"]]
+    labels = [
+        e.get("image_name", e.get("filename", str(i + 1)))
+        for i, e in enumerate(stats["per_image_stats"])
+    ]
+    x = list(range(1, len(times) + 1))
+
+    max_len = max(max_len, len(times))
+
+    mean_t = stats["mean_time_s"]
+    min_t = stats["min_time_s"]
+    max_t = stats["max_time_s"]
+
+    fig.add_trace(go.Scatter(
+        x=x,
+        y=times,
+        mode="lines",
+        name=nn_label,
+        customdata=labels,
+        hovertemplate=(
+            "<b>Network:</b> " + stats.get("network_type", nn_label) +
+            "<br><b>Image:</b> %{customdata}" +
+            "<br><b>Index:</b> %{x}" +
+            "<br><b>Time:</b> %{y:.4f}s<extra></extra>"
+        ),
+    ))
+
+    print(
+        f"{nn_label}: mean={mean_t:.4f}s  min={min_t:.4f}s  max={max_t:.4f}s"
+    )
+
+fig.update_layout(
+    title="Graf času inferencie pre jednotlivé snímky",
+    xaxis_title="Poradové číslo vstupnej snímky",
+    yaxis_title="Čas inferencie (s)",
+    template="plotly_white",
+    showlegend=True,
+    width=1200,
+    height=600,
+    font=dict(size=17),  # global base font size for all text
+    legend=dict(font=dict(size=19)),
+)
+
+fig.update_xaxes(
+    tickmode="linear",
+    dtick=20,
+    range=[1, max_len],
+    tickfont=dict(size=18),
+    title_font=dict(size=19),
+)
+
+fig.update_yaxes(
+    tickformat=".1f",
+    # dtick=0.25,
+    tickfont=dict(size=18),
+    title_font=dict(size=19),
+)
+
+fig.show()

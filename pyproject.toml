@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nico_stereo"
+version = "0.1.0"
+description = "Built-in stereo vs. RGB-D depth and 6D object pose estimation on the NICO humanoid"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+include = ["nico_stereo*"]
