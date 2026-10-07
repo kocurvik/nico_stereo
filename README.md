@@ -62,7 +62,7 @@ holds the data and the third-party clones:
 <repo>/third_party/<name>/            clones of the model repositories
 ```
 
-To keep the ~16 GB elsewhere set `NICO_STEREO_ROOT` (the directory that contains `datasets/` and `out/`),
+To keep the ~17 GB elsewhere set `NICO_STEREO_ROOT` (the directory that contains `datasets/` and `out/`),
 `NICO_STEREO_THIRD_PARTY` and `FOUNDATIONPOSE_DIR`. The date `24042026` is the recording date and is
 hard-coded as a default in several scripts.
 
@@ -79,12 +79,12 @@ page, check them against `SHA256SUMS`, then `unzip` each into the repository roo
 | file | size | contents | needed for |
 |---|---|---|---|
 | `nico_stereo_out_core.zip` | 0.3 GB | `out/out_24042026/`: `cameras_parameters`, `cameras_statistic_model`, `depth_comparison`, `inference_time_stats.csv`, and `pose_estimation/{3D_models,masks,results,results_check}` (the FoundationPose poses of all arms) | every scoring script |
-| `nico_stereo_out_depth_estimation.zip` | 5.7 GB | `out/out_24042026/depth_estimation/<model>/`: the depth maps (`depth/*.npy`, 215 frames, 640x360), `run_stats.json`, visualisations for 13 depth sources | depth scoring, figures, `verify_data.py` |
+| `nico_stereo_out_depth_estimation.zip` | 6.0 GB | `out/out_24042026/depth_estimation/<model>/`: the depth maps (`depth/*.npy`, 215 frames, 640x360), `run_stats.json`, visualisations for 13 depth sources | depth scoring, figures, `verify_data.py` |
 | `nico_stereo_out_pose_inputs.zip` | 0.9 GB | `out/out_24042026/pose_estimation/`: `depth_{nn,rgbd,sgbm,las2_m,las2_h}` and `undistorted_images_NICO` | re-running FoundationPose |
-| `nico_stereo_dataset_stereo_4k_depth.zip` | 5.1 GB | `datasets/dataset_24042026/stereo_4k_depth/`: the 215 evaluation frames (4K stereo pair, RealSense and ZED M RGB and depth) | re-running depth networks, re-scoring from raw |
+| `nico_stereo_dataset_stereo_4k_depth.zip` | 5.5 GB | `datasets/dataset_24042026/stereo_4k_depth/`: the 215 evaluation frames (4K stereo pair, RealSense and ZED M RGB and depth) | re-running depth networks, re-scoring from raw |
 | `nico_stereo_dataset_downstream_task.zip` | 1.5 GB | `.../downstream_task/`: the six pose scenes (scenes 001, 002, 004, 005, 006, 009) | re-running the pose pipeline from raw |
 | `nico_stereo_dataset_calibration.zip` | 1.5 GB | `.../stereo_4k_calibration`, `stereo_4k_relative_pose`, `calibration_ZED`, `calibration_Realsense`, `distance_validation` | re-running calibration |
-| `nico_stereo_dataset_camera_stats_model.zip` | 1.5 GB | `.../camera_stats_model/`: repeated static scenes behind the noise model | re-running the noise model |
+| `nico_stereo_dataset_camera_stats_model.zip` | 1.6 GB | `.../camera_stats_model/`: repeated static scenes behind the noise model | re-running the noise model |
 
 The depth maps are metric depth in metres, one `<frame>_depth.npy` per frame. `depth_comparison/zed/metrics_cauchy/`
 holds the per-image and summary metrics, `pose_estimation/results/<arm>/<scene>/<object>/ob_in_cam/<frame>.txt` the
