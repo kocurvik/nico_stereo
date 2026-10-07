@@ -4,7 +4,8 @@ Works on an existing draft (e.g. one started in the web interface) through
 Zenodo's draft-files API (``/api/records/<id>/draft/files``). For every local
 file it looks at what the draft already holds:
 
-* committed, same size and same MD5 -> skipped (already uploaded);
+* committed with the same size      -> skipped (already uploaded; add
+  ``--verify-existing`` to also compare the MD5, which reads the whole file);
 * same name but pending/partial/different -> deleted and uploaded again;
 * not on the draft                  -> uploaded.
 
@@ -76,6 +77,8 @@ def main() -> None:
     ap.add_argument("--dir", type=Path, default=Path("D:/Research/data/nico_stereo_zenodo"))
     ap.add_argument("--list", action="store_true", help="only show the draft's files and the plan")
     ap.add_argument("--retries", type=int, default=3)
+    ap.add_argument("--verify-existing", action="store_true",
+                    help="also compare the MD5 of files that are already complete on the draft")
     args = ap.parse_args()
 
     token = os.environ.get("ZENODO_TOKEN")
@@ -114,7 +117,7 @@ def main() -> None:
         if e is None:
             plan.append((name, "upload"))
         elif e.get("status") == "completed" and e.get("size") == path.stat().st_size:
-            plan.append((name, "check-md5"))
+            plan.append((name, "check-md5" if args.verify_existing else "skip (already complete)"))
         else:
             plan.append((name, f"replace ({e.get('status')}, {e.get('size') or 0:,} B on the draft)"))
     print("\nplan:")
@@ -128,6 +131,9 @@ def main() -> None:
         size = path.stat().st_size
         print(f"\n{name} ({size / 1e9:.2f} GB)")
         e = remote.get(name)
+        if what.startswith("skip"):
+            print("    already complete on the draft, skipped")
+            continue
         if what == "check-md5":
             print("    complete on the draft; comparing MD5 ...", flush=True)
             if md5_of(path) == (e.get("checksum") or "").replace("md5:", ""):
