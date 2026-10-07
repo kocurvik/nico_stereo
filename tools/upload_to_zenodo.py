@@ -42,12 +42,21 @@ def md5_of(path: Path) -> str:
     return h.hexdigest()
 
 
+def fmt_time(seconds: float) -> str:
+    seconds = int(max(seconds, 0))
+    h, rem = divmod(seconds, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}h{m:02d}m" if h else f"{m}m{s:02d}s"
+
+
 class ProgressFile:
     """File-like object that reports progress while requests streams it."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, done_before: int = 0, total: int = 0):
         self.f = open(path, "rb")
         self.size = path.stat().st_size
+        self.done_before = done_before      # bytes of earlier files in this run
+        self.total = total or self.size     # bytes to upload in this run
         self.sent = 0
         self.t0 = time.time()
         self.last = 0.0
@@ -60,8 +69,12 @@ class ProgressFile:
         self.sent += len(block)
         now = time.time()
         if now - self.last > 2 or not block:
-            rate = self.sent / max(now - self.t0, 1e-9) / 1e6
-            print(f"\r    {self.sent / 1e9:6.2f} / {self.size / 1e9:.2f} GB  {rate:5.1f} MB/s   ",
+            rate = self.sent / max(now - self.t0, 1e-9)            # bytes/s on this file
+            eta_file = (self.size - self.sent) / rate if rate else 0
+            eta_all = (self.total - self.done_before - self.sent) / rate if rate else 0
+            print(f"\r    {self.sent / 1e9:5.2f}/{self.size / 1e9:.2f} GB "
+                  f"{100 * self.sent / self.size:5.1f}%  {rate / 1e6:5.1f} MB/s  "
+                  f"ETA file {fmt_time(eta_file)}, all {fmt_time(eta_all)}   ",
                   end="", flush=True)
             self.last = now
         return block
@@ -126,6 +139,10 @@ def main() -> None:
     if args.list:
         return
 
+    total = sum((args.dir / n).stat().st_size for n, w in plan if not w.startswith("skip"))
+    done_before = 0
+    print(f"\n{total / 1e9:.2f} GB to upload in this run")
+
     for name, what in plan:
         path = args.dir / name
         size = path.stat().st_size
@@ -154,7 +171,7 @@ def main() -> None:
                 print(f"    attempt {attempt}: initiate failed, HTTP {i.status_code} {i.text[:200]}")
                 time.sleep(10 * attempt)
                 continue
-            pf = ProgressFile(path)
+            pf = ProgressFile(path, done_before, total)
             try:
                 up = s.put(f"{base}/{name}/content", data=pf, timeout=(30, 900),
                            headers={"Content-Type": "application/octet-stream"})
@@ -183,6 +200,7 @@ def main() -> None:
         if reported != local_md5:
             sys.exit(f"{name}: MD5 mismatch after upload (Zenodo {reported}, local {local_md5})")
         print(f"    uploaded and committed, MD5 verified ({local_md5})")
+        done_before += size
 
     print("\nall files are on the draft. Review it and publish in the web interface; "
           "this script does not publish.")
